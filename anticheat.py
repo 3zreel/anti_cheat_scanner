@@ -6,7 +6,6 @@ import math
 import logging
 import tkinter as tk
 from tkinter import Tk, Frame, Label, Button, Listbox, Scrollbar, END, messagebox, Toplevel
-import base64
 try:
     import psutil
     import wmi
@@ -39,8 +38,8 @@ def check_requirements():
     except Exception as e:
         print(f"Error checking permissions: {str(e)}")
 
-# الويب هوك المشفر باستخدام base64
-ENCODED_WEBHOOK = "aHR0cHM6Ly9jYW5hcnkuZGlzY29yZC5jb20vYXBpL3dlYmhvb2tzLzEzOTM1NjM4NDQ2MDQ4NTQyODIvSGh5OWh4dEVFTzlyYkZXN0h1TzVoRUlpTGVJM2VpQ3RCN0tjZDlvUURxQlJ3SzkxZzI5X2lLNUpKTVQ0NDRhUmp0dG8="
+# الويب هوك (غير مشفر)
+WEBHOOK_URL = "https://canary.discord.com/api/webhooks/1393563844604854282/Hhy9hxtEEO9rbFW7HuO5hEIiLeI3eiCtB7Kcd9oQDqBRwK91g29_iK5QJMP444aRjtto"
 
 # القوائم المشبوهة
 suspicious_files = ["chromedriver.dll", "notepad.exe", "grandfromsawar.exe", ".rpf", ".ini", ".cfg"]
@@ -89,11 +88,11 @@ def show_loading_screen():
     loading_window = Toplevel(root)
     loading_window.title("Scanning...")
     loading_window.geometry("300x150")
-    loading_window.configure(bg="#2a2a2a")
+    loading_window.configure(bg="#2E2E2E")
     loading_window.transient(root)
     loading_window.grab_set()
 
-    label = Label(loading_window, text="MT", fg="#00ff00", bg="#2a2a2a", font=("Arial", 24, "bold"))
+    label = Label(loading_window, text="MT", fg="#FFB74D", bg="#2E2E2E", font=("Arial", 24, "bold"))
     label.place(relx=0.5, rely=0.5, anchor="center")
 
     def animate_label(frame=0):
@@ -104,19 +103,13 @@ def show_loading_screen():
         loading_window.after(50, animate_label, frame + 1)
 
     animate_label()
-    Label(loading_window, text="Scanning...", fg="white", bg="#2a2a2a", font=("Arial", 12)).place(relx=0.5, rely=0.8, anchor="center")
+    Label(loading_window, text="Scanning...", fg="#F5F5F5", bg="#2E2E2E", font=("Arial", 12)).place(relx=0.5, rely=0.8, anchor="center")
     return loading_window
 
 def send_to_discord(pid, status_emoji, cheat_type, last_used):
-    # فك تشفير الـ Webhook
-    try:
-        WEBHOOK_URL = base64.b64decode(ENCODED_WEBHOOK).decode('utf-8')
-    except Exception as e:
-        logging.warning(f"Failed to decode webhook URL: {str(e)}. Skipping Discord notification.")
-        return
-
     if not WEBHOOK_URL:
         logging.warning("Webhook URL not configured. Skipping Discord notification.")
+        print("Webhook URL is empty")
         return
 
     severity_levels = {
@@ -157,9 +150,10 @@ def send_to_discord(pid, status_emoji, cheat_type, last_used):
     try:
         response = requests.post(WEBHOOK_URL, json=payload)
         response.raise_for_status()
-        logging.info(f"Discord embed sent: PID: {pid}, Status: {status_emoji}, Cheat Type: {cheat_type}, Severity: {severity}")
+        logging.info(f"Discord embed sent successfully: PID: {pid}, Status: {status_emoji}, Cheat Type: {cheat_type}, Severity: {severity}, HTTP Status: {response.status_code}")
     except Exception as e:
-        logging.error(f"Failed to send Discord embed: {str(e)}")
+        logging.error(f"Failed to send Discord embed: {str(e)}, HTTP Status: {response.status_code if 'response' in locals() else 'N/A'}")
+        print(f"Failed to send Discord embed: {str(e)}")
 
 def scan_system():
     global root, results_listbox
@@ -288,37 +282,42 @@ def scan_system():
 
 def update_cheat_status(cheat_types):
     if cheat_types:
-        status_label.config(text=f"Cheat Detected: {', '.join(cheat_types)}", fg="#ff4444")
+        status_label.config(text=f"Cheat Detected: {', '.join(cheat_types)}", fg="#E04E39")
     else:
-        status_label.config(text="No Cheat Detected", fg="#00ff00")
+        status_label.config(text="No Cheat Detected", fg="#D3D3D3")
 
 def update_results():
     for widget in results_frame.winfo_children():
         if isinstance(widget, Frame) and widget != results_listbox:
             widget.destroy()
     for i, item in enumerate(results_listbox.get(0, END)):
-        if "Spoofer" in item:
-            create_result_panel(results_frame, "Spoofer Detected", item.split("Detected: ")[1], "red", i)
-        elif "Cheat Loader" in item:
-            create_result_panel(results_frame, "Cheat Loader Detected", item.split("Detected: ")[1], "orange", i)
-        elif "Memory Modification" in item:
-            create_result_panel(results_frame, "Memory Modification Detected", item.split("Detected: ")[1], "purple", i)
-        elif "Unauthorized Script" in item:
-            create_result_panel(results_frame, "Unauthorized Script Detected", item.split("Detected: ")[1], "pink", i)
-        elif "Bypass Tool" in item:
-            create_result_panel(results_frame, "Bypass Tool Detected", item.split("Detected: ")[1], "brown", i)
-        elif "Service" in item or "Registry" in item:
-            create_result_panel(results_frame, "System Tampering", item, "yellow", i)
+        create_result_panel(results_frame, item, i)
 
-def create_result_panel(parent, title, details, color, index):
-    panel = Frame(parent, bg="#444444", bd=2, relief="solid")
+def create_result_panel(parent, item, index):
+    panel = Frame(parent, bg="#2E2E2E", bd=2, relief="solid")
     panel.pack(fill="x", pady=10, padx=5)
-    panel.config(highlightbackground=color, highlightcolor=color, highlightthickness=2)
-    Label(panel, text=title, fg="white", bg="#444444", font=("Arial", 10, "bold")).pack(side="left", padx=10)
-    Label(panel, text=details, fg="#cccccc", bg="#444444", font=("Arial", 9)).pack(side="left", padx=10)
-    details_button = Button(panel, text="Details", bg="#4a90e2", fg="white", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: show_details(i))
+    panel.config(highlightbackground="#F28C38", highlightcolor="#F28C38", highlightthickness=2)
+    
+    title = "Threat Detected"
+    if "Spoofer" in item:
+        title = "Spoofer Detected"
+    elif "Cheat Loader" in item:
+        title = "Cheat Loader Detected"
+    elif "Memory Modification" in item:
+        title = "Memory Modification Detected"
+    elif "Unauthorized Script" in item:
+        title = "Unauthorized Script Detected"
+    elif "Bypass Tool" in item:
+        title = "Bypass Tool Detected"
+    elif "Service" in item or "Registry" in item:
+        title = "System Tampering"
+
+    details = item.split("Detected: ")[1] if "Detected: " in item else item
+    Label(panel, text=title, fg="#F5F5F5", bg="#2E2E2E", font=("Arial", 10, "bold")).pack(side="left", padx=10)
+    Label(panel, text=details, fg="#D3D3D3", bg="#2E2E2E", font=("Arial", 9)).pack(side="left", padx=10)
+    details_button = Button(panel, text="Details", bg="#4A4A4A", fg="#FFFFFF", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: show_details(i))
     details_button.pack(side="right", padx=5)
-    remove_button = Button(panel, text="Remove", bg="#ff6666", fg="white", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: remove_threat(i))
+    remove_button = Button(panel, text="Remove", bg="#E04E39", fg="#FFFFFF", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: remove_threat(i))
     remove_button.pack(side="right", padx=5)
     return panel
 
@@ -358,50 +357,50 @@ if __name__ == "__main__":
     root = Tk()
     root.title("AntiCheat Scanner")
     root.geometry("800x500")
-    root.configure(bg="#1a1a1a")
+    root.configure(bg="#1C2526")
 
-    canvas = tk.Canvas(root, bg="#1a1a1a", highlightthickness=0, width=800, height=500)
+    canvas = tk.Canvas(root, bg="#1C2526", highlightthickness=0, width=800, height=500)
     canvas.pack(fill="both", expand=True)
     gradient = tk.PhotoImage(width=800, height=500)
     for x in range(800):
-        r = int(26 + (x / 800) * 20)
-        g = int(26 + (x / 800) * 20)
-        b = int(38 + (x / 800) * 20)
+        r = int(28 + (x / 800) * 10)
+        g = int(37 + (x / 800) * 10)
+        b = int(38 + (x / 800) * 10)
         canvas.create_line(x, 0, x, 500, fill=f'#{r:02x}{g:02x}{b:02x}')
     canvas.create_image(0, 0, image=gradient, anchor="nw")
 
-    control_panel = Frame(root, bg="#2a2a2a", bd=2, relief="raised")
+    control_panel = Frame(root, bg="#2E2E2E", bd=2, relief="raised")
     control_panel.place(x=20, y=20, width=150, height=460)
 
-    scan_button = Button(control_panel, text="Scan", command=scan_system, bg="#4a90e2", fg="white", font=("Arial", 12, "bold"), padx=15, pady=10, relief="flat", bd=0)
+    scan_button = Button(control_panel, text="Scan", command=scan_system, bg="#F28C38", fg="#FFFFFF", font=("Arial", 12, "bold"), padx=15, pady=10, relief="flat", bd=0)
     scan_button.place(x=20, y=20)
 
     log_types = ["Detection Logs (13)", "Integrity Logs (4)", "Untrusted Files (0)", "Warning Logs (1)",
                  "Suspicious Logs (5)", "Engine Logs (0)", "Daily Logs (33)", "USB Logs (0)",
                  "Background (0)", "Antivirus (1)", "RAM (0)"]
-    log_frame = Frame(control_panel, bg="#2a2a2a")
+    log_frame = Frame(control_panel, bg="#2E2E2E")
     log_frame.place(x=10, y=80, width=130, height=370)
     for i, log_type in enumerate(log_types):
-        label = Label(log_frame, text=log_type, fg="white", bg="#2a2a2a", font=("Arial", 8), anchor="w")
+        label = Label(log_frame, text=log_type, fg="#F5F5F5", bg="#2E2E2E", font=("Arial", 8), anchor="w")
         label.pack(fill="x", pady=5, padx=5)
 
-    results_panel = Frame(root, bg="#333333", bd=2, relief="raised")
+    results_panel = Frame(root, bg="#2E2E2E", bd=2, relief="raised")
     results_panel.place(x=180, y=20, width=600, height=460)
 
-    results_frame = Frame(results_panel, bg="#333333")
+    results_frame = Frame(results_panel, bg="#2E2E2E")
     results_frame.pack(fill="both", expand=True, padx=10, pady=10)
     global results_listbox
-    results_listbox = Listbox(results_frame, bg="#1e1e1e", fg="white", height=15, width=70, font=("Courier", 10))
+    results_listbox = Listbox(results_frame, bg="#1C2526", fg="#F5F5F5", height=15, width=70, font=("Courier", 10))
     results_listbox.pack(side="top", fill="both", expand=True)
     scrollbar = Scrollbar(results_frame, orient="vertical", command=results_listbox.yview)
     scrollbar.pack(side="right", fill="y")
     results_listbox.config(yscrollcommand=scrollbar.set)
 
-    scan_info = Label(results_panel, text="Scan Results | Randump: Yes | AI: Not Supported", fg="#00ff00", bg="#333333", font=("Arial", 10, "bold"))
+    scan_info = Label(results_panel, text="Scan Results | Randump: Yes | AI: Not Supported", fg="#FFB74D", bg="#2E2E2E", font=("Arial", 10, "bold"))
     scan_info.place(x=10, y=10)
 
     global status_label
-    status_label = Label(root, text="", font=("Arial", 14, "bold"), bg="#1a1a1a", fg="#00ff00")
+    status_label = Label(root, text="", font=("Arial", 14, "bold"), bg="#1C2526", fg="#D3D3D3")
     status_label.place(x=180, y=470)
 
     root.mainloop()
