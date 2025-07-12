@@ -6,6 +6,7 @@ import math
 import logging
 import tkinter as tk
 from tkinter import Tk, Frame, Label, Button, Listbox, Scrollbar, END, messagebox, Toplevel
+import base64
 try:
     import psutil
     import wmi
@@ -13,7 +14,7 @@ try:
     import requests
     from PIL import Image, ImageTk
 except ImportError:
-    print("يتم تثبيت التبعيات المطلوبة...")
+    print("Installing required dependencies...")
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'requests', 'Pillow', 'psutil', 'wmi'])
     import psutil
     import wmi
@@ -29,17 +30,17 @@ logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s -
 # التحقق من المتطلبات
 def check_requirements():
     if sys.version_info < (3, 6):
-        print("خطأ: يتطلب البرنامج Python 3.6 أو أحدث.")
+        print("Error: This program requires Python 3.6 or higher.")
         sys.exit(1)
     try:
         import ctypes
         if not ctypes.windll.shell32.IsUserAnAdmin():
-            print("تحذير: يوصى بتشغيل البرنامج كمسؤول للحصول على أفضل أداء.")
+            print("Warning: It is recommended to run the program as an administrator for optimal performance.")
     except Exception as e:
-        print(f"خطأ في التحقق من الصلاحيات: {str(e)}")
+        print(f"Error checking permissions: {str(e)}")
 
-# الويب هوك
-WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"
+# الويب هوك المشفر باستخدام base64
+ENCODED_WEBHOOK = "aHR0cHM6Ly9jYW5hcnkuZGlzY29yZC5jb20vYXBpL3dlYmhvb2tzLzEzOTM1NjM4NDQ2MDQ4NTQyODIvSGh5OWh4dEVFTzlyYkZXN0h1TzVoRUlpTGVJM2VpQ3RCN0tjZDlvUURxQlJ3SzkxZzI5X2lLNUpKTVQ0NDRhUmp0dG8="
 
 # القوائم المشبوهة
 suspicious_files = ["chromedriver.dll", "notepad.exe", "grandfromsawar.exe", ".rpf", ".ini", ".cfg"]
@@ -86,7 +87,7 @@ def show_loading_screen():
     if not hasattr(root, 'tk'):
         raise ValueError("Root window is not properly initialized")
     loading_window = Toplevel(root)
-    loading_window.title("جارٍ الفحص...")
+    loading_window.title("Scanning...")
     loading_window.geometry("300x150")
     loading_window.configure(bg="#2a2a2a")
     loading_window.transient(root)
@@ -103,13 +104,21 @@ def show_loading_screen():
         loading_window.after(50, animate_label, frame + 1)
 
     animate_label()
-    Label(loading_window, text="جارٍ الفحص...", fg="white", bg="#2a2a2a", font=("Arial", 12)).place(relx=0.5, rely=0.8, anchor="center")
+    Label(loading_window, text="Scanning...", fg="white", bg="#2a2a2a", font=("Arial", 12)).place(relx=0.5, rely=0.8, anchor="center")
     return loading_window
 
 def send_to_discord(pid, status_emoji, cheat_type, last_used):
-    if not WEBHOOK_URL or WEBHOOK_URL == "YOUR_DISCORD_WEBHOOK_URL_HERE":
+    # فك تشفير الـ Webhook
+    try:
+        WEBHOOK_URL = base64.b64decode(ENCODED_WEBHOOK).decode('utf-8')
+    except Exception as e:
+        logging.warning(f"Failed to decode webhook URL: {str(e)}. Skipping Discord notification.")
+        return
+
+    if not WEBHOOK_URL:
         logging.warning("Webhook URL not configured. Skipping Discord notification.")
         return
+
     severity_levels = {
         "Spoofer": ("Critical", 0xFF0000),
         "Cheat Loader": ("High", 0xFFA500),
@@ -142,7 +151,7 @@ def send_to_discord(pid, status_emoji, cheat_type, last_used):
                 {"name": "📝 Recommended Action", "value": "Investigate and remove detected threats." if status_emoji == "✅" else "No action needed.", "inline": False}
             ],
             "footer": {"text": f"AntiCheat Scanner | Scan Time: {time.strftime('%H:%M:%S %Z, %Y-%m-%d')}"},
-            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S+03:00')
+            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S+00:00')
         }]
     }
     try:
@@ -279,9 +288,9 @@ def scan_system():
 
 def update_cheat_status(cheat_types):
     if cheat_types:
-        status_label.config(text=f"تم اكتشاف غش: {', '.join(cheat_types)}", fg="#ff4444")
+        status_label.config(text=f"Cheat Detected: {', '.join(cheat_types)}", fg="#ff4444")
     else:
-        status_label.config(text="لم يتم اكتشاف غش", fg="#00ff00")
+        status_label.config(text="No Cheat Detected", fg="#00ff00")
 
 def update_results():
     for widget in results_frame.winfo_children():
@@ -289,17 +298,17 @@ def update_results():
             widget.destroy()
     for i, item in enumerate(results_listbox.get(0, END)):
         if "Spoofer" in item:
-            create_result_panel(results_frame, "تم اكتشاف أداة تزييف", item.split("Detected: ")[1], "red", i)
+            create_result_panel(results_frame, "Spoofer Detected", item.split("Detected: ")[1], "red", i)
         elif "Cheat Loader" in item:
-            create_result_panel(results_frame, "تم اكتشاف أداة تحميل غش", item.split("Detected: ")[1], "orange", i)
+            create_result_panel(results_frame, "Cheat Loader Detected", item.split("Detected: ")[1], "orange", i)
         elif "Memory Modification" in item:
-            create_result_panel(results_frame, "تم اكتشاف تعديل الذاكرة", item.split("Detected: ")[1], "purple", i)
+            create_result_panel(results_frame, "Memory Modification Detected", item.split("Detected: ")[1], "purple", i)
         elif "Unauthorized Script" in item:
-            create_result_panel(results_frame, "تم اكتشاف سكربت غير مصرح", item.split("Detected: ")[1], "pink", i)
+            create_result_panel(results_frame, "Unauthorized Script Detected", item.split("Detected: ")[1], "pink", i)
         elif "Bypass Tool" in item:
-            create_result_panel(results_frame, "تم اكتشاف أداة التفاف", item.split("Detected: ")[1], "brown", i)
+            create_result_panel(results_frame, "Bypass Tool Detected", item.split("Detected: ")[1], "brown", i)
         elif "Service" in item or "Registry" in item:
-            create_result_panel(results_frame, "تلاعب بالنظام", item, "yellow", i)
+            create_result_panel(results_frame, "System Tampering", item, "yellow", i)
 
 def create_result_panel(parent, title, details, color, index):
     panel = Frame(parent, bg="#444444", bd=2, relief="solid")
@@ -307,15 +316,15 @@ def create_result_panel(parent, title, details, color, index):
     panel.config(highlightbackground=color, highlightcolor=color, highlightthickness=2)
     Label(panel, text=title, fg="white", bg="#444444", font=("Arial", 10, "bold")).pack(side="left", padx=10)
     Label(panel, text=details, fg="#cccccc", bg="#444444", font=("Arial", 9)).pack(side="left", padx=10)
-    details_button = Button(panel, text="تفاصيل", bg="#4a90e2", fg="white", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: show_details(i))
+    details_button = Button(panel, text="Details", bg="#4a90e2", fg="white", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: show_details(i))
     details_button.pack(side="right", padx=5)
-    remove_button = Button(panel, text="إزالة", bg="#ff6666", fg="white", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: remove_threat(i))
+    remove_button = Button(panel, text="Remove", bg="#ff6666", fg="white", font=("Arial", 8), width=10, relief="flat", command=lambda i=index: remove_threat(i))
     remove_button.pack(side="right", padx=5)
     return panel
 
 def show_details(index):
     item = results_listbox.get(index)
-    messagebox.showinfo("تفاصيل", f"تفاصيل التهديد:\n{item}\nالإجراء: يرجى التحقيق يدويًا.")
+    messagebox.showinfo("Details", f"Threat Details:\n{item}\nAction: Please investigate manually.")
 
 def remove_threat(index):
     item = results_listbox.get(index)
@@ -326,12 +335,12 @@ def remove_threat(index):
                 os.remove(path)
                 results_listbox.delete(index)
                 logging.info(f"Removed threat: {path}")
-                messagebox.showinfo("نجاح", f"تمت الإزالة: {path}")
+                messagebox.showinfo("Success", f"Removed: {path}")
                 scan_system()
             else:
-                messagebox.showwarning("خطأ", "الملف غير موجود أو غير متاح.")
+                messagebox.showwarning("Error", "File not found or inaccessible.")
         except Exception as e:
-            messagebox.showerror("خطأ", f"فشل في الإزالة: {str(e)}")
+            messagebox.showerror("Error", f"Failed to remove: {str(e)}")
     elif "Process: " in item:
         pid = int(item.split(" (PID: ")[1].split(")")[0])
         try:
@@ -339,10 +348,10 @@ def remove_threat(index):
             process.terminate()
             results_listbox.delete(index)
             logging.info(f"Terminated process PID: {pid}")
-            messagebox.showinfo("نجاح", f"تم إنهاء العملية PID: {pid}")
+            messagebox.showinfo("Success", f"Terminated process PID: {pid}")
             scan_system()
         except Exception as e:
-            messagebox.showerror("خطأ", f"فشل في إنهاء العملية: {str(e)}")
+            messagebox.showerror("Error", f"Failed to terminate process: {str(e)}")
 
 if __name__ == "__main__":
     check_requirements()
@@ -364,12 +373,12 @@ if __name__ == "__main__":
     control_panel = Frame(root, bg="#2a2a2a", bd=2, relief="raised")
     control_panel.place(x=20, y=20, width=150, height=460)
 
-    scan_button = Button(control_panel, text="فحص", command=scan_system, bg="#4a90e2", fg="white", font=("Arial", 12, "bold"), padx=15, pady=10, relief="flat", bd=0)
+    scan_button = Button(control_panel, text="Scan", command=scan_system, bg="#4a90e2", fg="white", font=("Arial", 12, "bold"), padx=15, pady=10, relief="flat", bd=0)
     scan_button.place(x=20, y=20)
 
-    log_types = ["سجلات الكشف (13)", "سجلات النزاهة (4)", "ملفات غير موثوقة (0)", "سجلات التحذيرات (1)",
-                 "سجلات مشبوهة (5)", "سجلات المحركات (0)", "سجلات اليومية (33)", "سجلات USB (0)",
-                 "الخلفية (0)", "مضاد الفيروسات (1)", "RAM (0)"]
+    log_types = ["Detection Logs (13)", "Integrity Logs (4)", "Untrusted Files (0)", "Warning Logs (1)",
+                 "Suspicious Logs (5)", "Engine Logs (0)", "Daily Logs (33)", "USB Logs (0)",
+                 "Background (0)", "Antivirus (1)", "RAM (0)"]
     log_frame = Frame(control_panel, bg="#2a2a2a")
     log_frame.place(x=10, y=80, width=130, height=370)
     for i, log_type in enumerate(log_types):
@@ -388,7 +397,7 @@ if __name__ == "__main__":
     scrollbar.pack(side="right", fill="y")
     results_listbox.config(yscrollcommand=scrollbar.set)
 
-    scan_info = Label(results_panel, text="نتائج الفحص | Randump: نعم | AI: غير مدعوم", fg="#00ff00", bg="#333333", font=("Arial", 10, "bold"))
+    scan_info = Label(results_panel, text="Scan Results | Randump: Yes | AI: Not Supported", fg="#00ff00", bg="#333333", font=("Arial", 10, "bold"))
     scan_info.place(x=10, y=10)
 
     global status_label
