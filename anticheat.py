@@ -505,13 +505,13 @@ class DiscordNotifier:
             username = os.getlogin() if hasattr(os, 'getlogin') else 'Unknown'
             
             embed = {
-                "title": f"🛡️ {Config.APP_NAME} - تقرير الفحص",
-                "description": f"**فحص النظام مكتمل**\n{'🚨 **تم اكتشاف تهديدات!**' if scan_results else '✅ **النظام نظيف**'}",
+                "title": f"🛡️ {Config.APP_NAME} - Scan Report",
+                "description": f"**System scan completed**\n{'🚨 **Threats detected!**' if scan_results else '✅ **System is clean**'}",
                 "color": max_severity if max_severity > 0 else 0x00FF00,
                 "fields": [
                     {
-                        "name": "🔍 ملخص الفحص",
-                        "value": f"**التهديدات المكتشفة:** {len(scan_results)}\n**مستوى التهديد:** {threat_level}\n**وقت الفحص:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n**النظام:** {system_info}\n**المستخدم:** {username}",
+                        "name": "🔍 Scan Summary",
+                        "value": f"**Threats detected:** {len(scan_results)}\n**Threat level:** {threat_level}\n**Scan time:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n**System:** {system_info}\n**User:** {username}",
                         "inline": False
                     }
                 ],
@@ -529,7 +529,7 @@ class DiscordNotifier:
                 
                 threat_details = "\n".join([f"• {t}: {c}" for t, c in threat_summary.items()])
                 embed["fields"].append({
-                    "name": "⚠️ التهديدات المكتشفة",
+                    "name": "⚠️ Threats Detected",
                     "value": threat_details,
                     "inline": False
                 })
@@ -537,8 +537,8 @@ class DiscordNotifier:
                 top_threats = scan_results[:5]
                 for i, threat in enumerate(top_threats, 1):
                     embed["fields"].append({
-                        "name": f"🎯 التهديد #{i}",
-                        "value": f"**النوع:** {threat.get('type', 'Unknown')}\n**المسار:** {threat.get('path', 'N/A')}\n**التفاصيل:** {threat.get('details', 'N/A')}",
+                        "name": f"🎯 Threat #{i}",
+                        "value": f"**Type:** {threat.get('type', 'Unknown')}\n**Path:** {threat.get('path', 'N/A')}\n**Details:** {threat.get('details', 'N/A')}",
                         "inline": True
                     })
             
@@ -735,23 +735,23 @@ class AntiCheatScanner:
             logger.info("Starting comprehensive anti-cheat scan")
             
             if progress_callback:
-                progress_callback("جاري فحص الملفات...")
+                progress_callback("Scanning files...")
             file_threats = self.scan_files()
             self.scan_results.extend(file_threats)
             
             if progress_callback:
-                progress_callback("جاري فحص العمليات...")
+                progress_callback("Scanning processes...")
             process_threats = self.scan_processes()
             self.scan_results.extend(process_threats)
             
             if WINDOWS_AVAILABLE:
                 if progress_callback:
-                    progress_callback("جاري فحص السجل...")
+                    progress_callback("Scanning registry...")
                 registry_threats = self.scan_registry()
                 self.scan_results.extend(registry_threats)
             
             if progress_callback:
-                progress_callback("جاري إرسال التقرير...")
+                progress_callback("Sending report...")
             self.discord_notifier.send_notification(self.scan_results)
             
             logger.info(f"Comprehensive scan completed. Total threats found: {len(self.scan_results)}")
@@ -759,7 +759,7 @@ class AntiCheatScanner:
         except Exception as e:
             logger.error(f"Error during comprehensive scan: {e}")
             if progress_callback:
-                progress_callback(f"خطأ أثناء الفحص: {str(e)}")
+                progress_callback(f"Error during scan: {str(e)}")
         finally:
             self.is_scanning = False
         
@@ -787,7 +787,7 @@ class AntiCheatGUI:
     def show_splash_screen(self):
         """Show splash screen with logo and progress indicator"""
         self.splash_root = Toplevel(self.root)  # Use Toplevel instead of Tk
-        self.splash_root.title("جاري التحميل...")
+        self.splash_root.title("Loading...")
         self.splash_root.geometry("400x300")
         self.splash_root.configure(bg=Config.THEME_COLOR)
         self.splash_root.attributes('-topmost', True)
@@ -811,7 +811,7 @@ class AntiCheatGUI:
         # Progress label
         self.progress_label = Label(
             self.splash_root,
-            text="جاري التحميل...",
+            text="Loading...",
             font=("Arial", 12),
             fg=Config.TEXT_COLOR,
             bg=Config.THEME_COLOR
@@ -837,7 +837,7 @@ class AntiCheatGUI:
 
         # Create completion window
         completion_window = Toplevel(self.root)  # Use self.root as parent
-        completion_window.title("اكتمال الفحص")
+        completion_window.title("Scan Completed")
         completion_window.geometry("400x300")
         completion_window.configure(bg=Config.THEME_COLOR)
         completion_window.attributes('-topmost', True)
@@ -859,7 +859,7 @@ class AntiCheatGUI:
         logo_label.pack(pady=20)
 
         # Completion message
-        message = f"اكتمل الفحص!\nعدد التهديدات المكتشفة: {len(results)}"
+        message = f"Scan completed!\nNumber of threats detected: {len(results)}"
         completion_label = Label(
             completion_window,
             text=message,
@@ -872,7 +872,7 @@ class AntiCheatGUI:
         # OK button to close
         ok_button = Button(
             completion_window,
-            text="موافق",
+            text="OK",
             font=("Arial", 10, "bold"),
             bg=Config.ACCENT_COLOR,
             fg=Config.TEXT_COLOR,
@@ -911,7 +911,7 @@ class AntiCheatGUI:
         
         self.scan_button = Button(
             controls_frame,
-            text="بدء الفحص",
+            text="Start Scan",
             font=("Arial", 12, "bold"),
             bg=Config.ACCENT_COLOR,
             fg=Config.TEXT_COLOR,
@@ -922,7 +922,7 @@ class AntiCheatGUI:
         
         self.stop_button = Button(
             controls_frame,
-            text="إيقاف الفحص",
+            text="Stop Scan",
             font=("Arial", 12, "bold"),
             bg="#FF4444",
             fg=Config.TEXT_COLOR,
@@ -934,7 +934,7 @@ class AntiCheatGUI:
         
         self.progress_label = Label(
             controls_frame,
-            text="جاهز للفحص",
+            text="Ready to scan",
             font=("Arial", 10),
             fg=Config.TEXT_COLOR,
             bg=Config.THEME_COLOR
