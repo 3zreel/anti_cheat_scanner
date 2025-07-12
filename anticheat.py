@@ -91,6 +91,11 @@ def show_loading_screen():
     loading_window.configure(bg="#2E2E2E")
     loading_window.transient(root)
     loading_window.grab_set()
+    
+    try:
+        loading_window.iconbitmap("logo.icon")
+    except Exception as e:
+        logging.warning(f"Failed to load icon for loading window: {str(e)}")
 
     label = Label(loading_window, text="MT", fg="#FFB74D", bg="#2E2E2E", font=("Arial", 24, "bold"))
     label.place(relx=0.5, rely=0.5, anchor="center")
@@ -136,7 +141,7 @@ def send_to_discord(pid, status_emoji, cheat_type, last_used):
             "description": f"**Threat Detection Report** {'\n🚨 **Cheating Detected!**' if status_emoji == '✅' else '\n✅ **System Clean**'}",
             "color": color,
             "fields": [
-                {"name": "🔢 PID", "value": str(pid) if pid else "N/A", "inline": True},
+                {"name": "🆔 PID", "value": str(pid) if pid else "N/A", "inline": True},
                 {"name": "🛑 Status", "value": f"{status_emoji} {'Cheating Detected' if status_emoji == '✅' else 'No Cheating Detected'}", "inline": True},
                 {"name": "⚠️ Threat Type", "value": cheat_type if cheat_type != "None" else "None Detected", "inline": True},
                 {"name": "🔍 Severity", "value": severity, "inline": True},
@@ -358,6 +363,11 @@ if __name__ == "__main__":
     root.title("AntiCheat Scanner")
     root.geometry("800x500")
     root.configure(bg="#1C2526")
+    
+    try:
+        root.iconbitmap("logo.icon")
+    except Exception as e:
+        logging.warning(f"Failed to load icon for main window: {str(e)}")
 
     canvas = tk.Canvas(root, bg="#1C2526", highlightthickness=0, width=800, height=500)
     canvas.pack(fill="both", expand=True)
